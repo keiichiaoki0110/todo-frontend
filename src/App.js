@@ -1,28 +1,21 @@
+import React from 'react';
+import Header from './components/Header';
+import ToDoForm from './components/ToDoForm';
+import ToDoList from './components/ToDoList';
 
-import React, { useEffect, useState } from "react";
-
+// アプリ全体のコンポーネント
 function App() {
-  const [todos, setTodos] = useState([]);
-
-  useEffect(() => {
-    // http://localhost:8000/api/todoにアクセスし、todoのリストを取得
-    fetch("http://localhost:8000/api/todo")
-      .then((response) => response.json())
-      .then((data) => setTodos(data))
-      .catch((error) => console.error("Error fetching data:", error));
-  }, []);
-
-  return (
-    <div>
-      <h1>Todo List</h1>
-      {/* todosの内容をリスト(<ul><li>)を使用して一覧表示 */}
-      <ul>
-        {todos.map((todo) => (
-          <li key={todo.id}>{todo.title}</li>
-        ))}
-      </ul>
-    </div>
-  );
+    return (
+        <div>
+            {/* ヘッダー */}
+            <Header />
+            {/* タスク入力フォーム */}
+            <ToDoForm />
+            {/* タスクリスト */}
+            <ToDoList />
+        </div>
+    );
 }
 
 export default App;
+
