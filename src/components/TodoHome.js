@@ -2,40 +2,40 @@ import React, { useState } from 'react';
 import TaskFilter from './TaskFilter';
 import TaskList from './TaskList';
 
+// Todoアプリのメインコンポーネント
 function TodoHome({ onLogout, username }) {
-    // タスクリストの状態
+    // タスク全体の状態管理
     const [tasks, setTasks] = useState([]);
-    // 入力されたタスクタイトル
+    // フォーム入力値の状態管理
     const [title, setTitle] = useState('');
-    // 入力されたタスク詳細
     const [details, setDetails] = useState('');
-    // フィルタリングの状態 ('all', 'completed', 'incomplete')
+    // フィルタリング状態の管理
     const [filter, setFilter] = useState('all');
-    // エラーメッセージ
+    // エラーメッセージの管理
     const [error, setError] = useState('');
 
-    // タスクを追加する関数
+    // タスクを追加する処理
     const handleAddTask = (e) => {
         e.preventDefault();
 
-        // タイトルの文字数制限チェック
+        // タイトルが25文字を超える場合のエラーチェック
         if (title.length > 25) {
             setError('タイトルは25文字以内で入力してください');
             return;
         }
 
-        // 必須項目チェック
+        // タイトルや詳細が未入力の場合のエラーチェック
         if (!title || !details) {
             setError('タイトルと詳細を入力してください');
             return;
         }
 
-        setError(''); // エラーをクリア
+        setError(''); // エラーメッセージをリセット
 
         // 新しいタスクの作成
         const currentDateTime = new Date().toLocaleString();
         const newTask = {
-            id: Date.now(), // 一意のIDを生成
+            id: Date.now(), // タスクIDを一意に生成
             title,
             details,
             createdAt: currentDateTime, // 作成日時
@@ -43,28 +43,50 @@ function TodoHome({ onLogout, username }) {
             completed: false, // 初期状態は未完了
         };
 
-        // タスクリストに追加
+        // タスクをリストに追加
         setTasks([...tasks, newTask]);
-        setTitle(''); // 入力フィールドをリセット
+        // フォームの入力値をリセット
+        setTitle('');
         setDetails('');
     };
 
-    // タスクの完了/未完了を切り替える関数
-    const handleToggleComplete = (taskId) => {
+    // タスクを削除する処理
+    const handleDeleteTask = (taskId) => {
+        setTasks(tasks.filter((task) => task.id !== taskId));
+    };
+
+    // タスクを編集・更新する処理
+    const handleUpdateTask = (taskId, updatedTitle, updatedDetails) => {
         setTasks(
             tasks.map((task) =>
                 task.id === taskId
-                    ? { ...task, completed: !task.completed, updatedAt: new Date().toLocaleString() } // 状態を反転
+                    ? {
+                          ...task,
+                          title: updatedTitle, // タイトルを更新
+                          details: updatedDetails, // 詳細を更新
+                          updatedAt: new Date().toLocaleString(), // 更新日時を変更
+                      }
                     : task
             )
         );
     };
 
-    // フィルタリングされたタスクリストを取得
+    // タスクの完了・未完了を切り替える処理
+    const handleToggleComplete = (taskId) => {
+        setTasks(
+            tasks.map((task) =>
+                task.id === taskId
+                    ? { ...task, completed: !task.completed, updatedAt: new Date().toLocaleString() }
+                    : task
+            )
+        );
+    };
+
+    // 現在のフィルタリング状態に応じたタスクを取得
     const filteredTasks = tasks.filter((task) => {
-        if (filter === 'completed') return task.completed; // 完了タスクのみ
-        if (filter === 'incomplete') return !task.completed; // 未完了タスクのみ
-        return true; // 全タスク
+        if (filter === 'completed') return task.completed; // 完了のみ表示
+        if (filter === 'incomplete') return !task.completed; // 未完了のみ表示
+        return true; // 全て表示
     });
 
     // コンポーネントのスタイル設定
@@ -75,9 +97,10 @@ function TodoHome({ onLogout, username }) {
     const errorStyle = { color: 'red', fontSize: '14px' };
     const logoutButtonStyle = { padding: '10px', fontSize: '16px', backgroundColor: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' };
 
+
     return (
         <div style={containerStyle}>
-            {/* ヘッダー: ユーザー情報とログアウトボタン */}
+            {/* ヘッダー部分 */}
             <header style={headerStyle}>
                 <div>{username}でログイン中</div>
                 <button style={logoutButtonStyle} onClick={onLogout}>
@@ -110,9 +133,10 @@ function TodoHome({ onLogout, username }) {
             <TaskFilter filter={filter} setFilter={setFilter} />
 
             {/* タスクリスト */}
-            <TaskList tasks={filteredTasks} onToggleComplete={handleToggleComplete} />
+            <TaskList tasks={filteredTasks} onDelete={handleDeleteTask} onUpdate={handleUpdateTask} onToggleComplete={handleToggleComplete} />
         </div>
     );
 }
 
 export default TodoHome;
+
