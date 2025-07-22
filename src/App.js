@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-route
 import Header from './components/Header';
 import SignUpForm from './components/SignUpForm';
 import LoginForm from './components/LoginForm';
+import TodoHome from './components/TodoHome'; // TodoHomeコンポーネントをインポート
 
 function App() {
     const [currentUser, setCurrentUser] = useState('');
@@ -24,7 +25,7 @@ function App() {
         boxSizing: 'border-box',
     };
 
-    // ホーム画面コンポーネント（useNavigateを使用するため分離）
+    // ホーム画面コンポーネント（TodoHomeを使用）
     const HomePage = () => {
         const navigate = useNavigate();
         
@@ -33,25 +34,12 @@ function App() {
             navigate('/login'); // ログイン画面に戻る
         };
 
+        // TodoHomeコンポーネントを表示
         return (
-            <div>
-                <h2>ようこそ、{currentUser}さん！</h2>
-                <p>ログインに成功しました。</p>
-                <button 
-                    onClick={handleLogoutClick}
-                    style={{
-                        padding: '10px 20px',
-                        fontSize: '16px',
-                        backgroundColor: '#dc3545',
-                        color: '#fff',
-                        border: 'none',
-                        cursor: 'pointer',
-                        marginTop: '20px'
-                    }}
-                >
-                    ログアウト
-                </button>
-            </div>
+            <TodoHome 
+                onLogout={handleLogoutClick}
+                username={currentUser}
+            />
         );
     };
 
