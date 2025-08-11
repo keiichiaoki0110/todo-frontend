@@ -1,54 +1,85 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-// タスク追加フォームを担当するコンポーネント
-function ToDoForm() {
-    // フォーム全体のスタイル
-    const formStyle = {
-        display: 'flex', // フレックスボックスを使用
-        flexDirection: 'column', // 縦方向に要素を配置
-        alignItems: 'center', // 中央揃え
-        gap: '15px', // 要素間のスペース
-        width: '100%',
-        maxWidth: '600px', // フォームの最大幅
-        margin: '20px auto', // 上下中央揃え
-    };
+function ToDoForm({ token }) {
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
 
-    // 入力フィールドのスタイル
-    const inputStyle = {
-        padding: '10px', // 内側の余白を設定
-        fontSize: '16px', // フォントサイズを設定
-        width: '100%',
-        boxSizing: 'border-box', // ボーダー幅を含めたサイズ計算
-    };
+    const handleSubmit = async (e) => {
+        e.preventDefault();
 
-    // ボタンのスタイル
-    const buttonStyle = {
-        padding: '10px 20px',
-        fontSize: '16px',
-        backgroundColor: '#28a745', // 緑色の背景
-        color: '#fff', // 白文字
-        border: 'none', // ボーダーを非表示
-        cursor: 'pointer', // マウスカーソルをポインタに
-        maxWidth: '150px',
+        if (!title.trim()) {
+            alert("タイトルを入力してください");
+            return;
+        }
+
+        try {
+            const res = await fetch("http://localhost:8000/todos", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ title, description }),
+            });
+
+            if (!res.ok) {
+                throw new Error("送信失敗");
+            }
+
+            const data = await res.json();
+            console.log("追加成功:", data);
+            setTitle("");
+            setDescription("");
+        } catch (err) {
+            console.error("送信エラー:", err);
+            alert("タスクの追加に失敗しました");
+        }
     };
 
     return (
-        <form style={formStyle}>
-            {/* タスクタイトル入力欄 */}
+        <form onSubmit={handleSubmit} style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '15px',
+            width: '100%',
+            maxWidth: '600px',
+            margin: '20px auto',
+        }}>
             <input
                 type="text"
                 placeholder="タスクタイトル"
-                style={inputStyle}
-                disabled // UIのみのため操作不可
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                style={{
+                    padding: '10px',
+                    fontSize: '16px',
+                    width: '100%',
+                    boxSizing: 'border-box',
+                }}
             />
-            {/* タスク詳細入力欄 */}
             <textarea
                 placeholder="タスク詳細"
-                style={{ ...inputStyle, height: '120px', resize: 'vertical' }} // テキストエリアの高さ設定
-                disabled
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                style={{
+                    padding: '10px',
+                    fontSize: '16px',
+                    width: '100%',
+                    height: '120px',
+                    resize: 'vertical',
+                    boxSizing: 'border-box',
+                }}
             />
-            {/* タスク追加ボタン */}
-            <button type="button" style={buttonStyle} disabled>
+            <button type="submit" style={{
+                padding: '10px 20px',
+                fontSize: '16px',
+                backgroundColor: '#28a745',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer',
+                maxWidth: '150px',
+            }}>
                 追加
             </button>
         </form>

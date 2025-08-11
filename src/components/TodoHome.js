@@ -1,92 +1,323 @@
-import React, { useState } from 'react';
-import TaskFilter from './TaskFilter';
-import TaskList from './TaskList';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import apiClient from '../api/client';
 
-// Todoアプリのメインコンポーネント
-function TodoHome({ onLogout, username }) {
-    // タスク全体の状態管理
+// TaskFilterコンポーネント
+const TaskFilter = ({ filter, setFilter }) => {
+    const filterStyle = {
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '10px',
+        margin: '20px 0'
+    };
+
+    const buttonStyle = {
+        padding: '8px 16px',
+        fontSize: '14px',
+        border: '1px solid #ccc',
+        backgroundColor: '#f8f9fa',
+        cursor: 'pointer',
+        borderRadius: '4px'
+    };
+
+    const activeButtonStyle = {
+        ...buttonStyle,
+        backgroundColor: '#007bff',
+        color: '#fff',
+        border: '1px solid #007bff'
+    };
+
+    return (
+        <div style={filterStyle}>
+            <button
+                style={filter === 'all' ? activeButtonStyle : buttonStyle}
+                onClick={() => setFilter('all')}
+            >
+                全て
+            </button>
+            <button
+                style={filter === 'completed' ? activeButtonStyle : buttonStyle}
+                onClick={() => setFilter('completed')}
+            >
+                完了
+            </button>
+            <button
+                style={filter === 'incomplete' ? activeButtonStyle : buttonStyle}
+                onClick={() => setFilter('incomplete')}
+            >
+                未完了
+            </button>
+        </div>
+    );
+};
+
+// TaskItemコンポーネント
+const TaskItem = ({ task, onToggleComplete, onDelete, onUpdate }) => {
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedTitle, setEditedTitle] = useState(task.title || '');
+    const [editedDetails, setEditedDetails] = useState(task.details || '');
+
+    const handleSave = () => {
+        onUpdate(task.id, editedTitle, editedDetails);
+        setIsEditing(false);
+    };
+
+    const itemStyle = {
+        padding: '15px',
+        borderBottom: '1px solid #ddd',
+        marginBottom: '10px',
+    };
+
+    const textStyle = {
+        whiteSpace: 'pre-wrap',
+        textDecoration: task.completed ? 'line-through' : 'none',
+        color: task.completed ? '#28a745' : '#000',
+    };
+
+    const inputStyle = {
+        padding: '10px',
+        fontSize: '16px',
+        width: '100%',
+        boxSizing: 'border-box',
+        marginBottom: '10px',
+    };
+
+    const buttonStyle = {
+        padding: '5px 10px',
+        fontSize: '14px',
+        backgroundColor: '#28a745',
+        color: '#fff',
+        border: 'none',
+        cursor: 'pointer',
+        marginRight: '5px',
+    };
+
+    const editButtonStyle = {
+        ...buttonStyle,
+        backgroundColor: '#007bff',
+    };
+
+    const deleteButtonStyle = {
+        ...buttonStyle,
+        backgroundColor: '#dc3545',
+    };
+
+    if (!task || !task.id) return null;
+
+    return (
+        <li style={itemStyle}>
+            {isEditing ? (
+                <>
+                    <input
+                        type="text"
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        style={inputStyle}
+                    />
+                    <textarea
+                        value={editedDetails}
+                        onChange={(e) => setEditedDetails(e.target.value)}
+                        style={{ ...inputStyle, height: '80px' }}
+                    />
+                    <button onClick={handleSave} style={buttonStyle}>
+                        保存
+                    </button>
+                    <button onClick={() => setIsEditing(false)} style={deleteButtonStyle}>
+                        キャンセル
+                    </button>
+                </>
+            ) : (
+                <>
+                    <h3 style={textStyle} onClick={() => onToggleComplete(task.id)}>
+                        {task.title}
+                    </h3>
+                    <p style={textStyle} onClick={() => onToggleComplete(task.id)}>
+                        {task.details}
+                    </p>
+                    <small>作成日時: {new Date(task.created_at).toLocaleString()}</small>
+                    <br />
+                    <small>更新日時: {new Date(task.updated_at).toLocaleString()}</small>
+                    <br />
+                    <button onClick={() => setIsEditing(true)} style={editButtonStyle}>
+                        編集
+                    </button>
+                    <button onClick={() => onDelete(task.id)} style={deleteButtonStyle}>
+                        削除
+                    </button>
+                </>
+            )}
+        </li>
+    );
+};
+
+// TaskListコンポーネント
+const TaskList = ({ tasks, onToggleComplete, onDelete, onUpdate }) => {
+    const listStyle = {
+        listStyleType: 'none',
+        padding: '0',
+        margin: '20px 0'
+    };
+
+    if (tasks.length === 0) {
+        return <p style={{ textAlign: 'center', color: '#666', fontStyle: 'italic' }}>タスクがありません</p>;
+    }
+
+    return (
+        <ul style={listStyle}>
+            {tasks.map(task => (
+                <TaskItem
+                    key={task.id}
+                    task={task}
+                    onToggleComplete={onToggleComplete}
+                    onDelete={onDelete}
+                    onUpdate={onUpdate}
+                />
+            ))}
+        </ul>
+    );
+};
+
+// メインのTodoHomeコンポーネント
+const TodoHome = ({ currentUser, handleLogout }) => {
+    const navigate = useNavigate();
+    
+    // タスクリストの状態
     const [tasks, setTasks] = useState([]);
-    // フォーム入力値の状態管理
+    // 入力されたタスクタイトル
     const [title, setTitle] = useState('');
+    // 入力されたタスク詳細
     const [details, setDetails] = useState('');
-    // フィルタリング状態の管理
+    // フィルタリングの状態('all', 'completed', 'incomplete')
     const [filter, setFilter] = useState('all');
-    // エラーメッセージの管理
+    // エラーメッセージ
     const [error, setError] = useState('');
+    // ローディング状態
+    const [loading, setLoading] = useState(false);
+    
+    // コンポーネントマウント時にタスクを取得
+    useEffect(() => {
+        fetchTasks();
+    }, []);
 
-    // タスクを追加する処理
-    const handleAddTask = (e) => {
+    // タスク一覧を取得する関数
+    const fetchTasks = async () => {
+        try {
+            setLoading(true);
+            console.log('📋 タスク一覧を取得中...');
+            const response = await apiClient.get('/todos');
+            console.log('✅ タスク取得成功:', response.data);
+            setTasks(response.data);
+        } catch (error) {
+            console.error('❌ タスク取得エラー:', error);
+            setError('タスクの取得に失敗しました');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleLogoutClick = () => {
+        localStorage.removeItem('access_token');
+        handleLogout();
+        navigate('/login');
+    };
+
+    // タスクを追加する関数
+    const handleAddTask = async (e) => {
         e.preventDefault();
 
-        // タイトルが25文字を超える場合のエラーチェック
+        // タイトルの文字数制限チェック
         if (title.length > 25) {
             setError('タイトルは25文字以内で入力してください');
             return;
         }
 
-        // タイトルや詳細が未入力の場合のエラーチェック
+        // 必須項目チェック
         if (!title || !details) {
             setError('タイトルと詳細を入力してください');
             return;
         }
 
-        setError(''); // エラーメッセージをリセット
-
-        // 新しいタスクの作成
-        const currentDateTime = new Date().toLocaleString();
-        const newTask = {
-            id: Date.now(), // タスクIDを一意に生成
-            title,
-            details,
-            createdAt: currentDateTime, // 作成日時
-            updatedAt: currentDateTime, // 更新日時
-            completed: false, // 初期状態は未完了
-        };
-
-        // タスクをリストに追加
-        setTasks([...tasks, newTask]);
-        // フォームの入力値をリセット
-        setTitle('');
-        setDetails('');
+        try {
+            setError(''); // エラーをクリア
+            setLoading(true);
+            
+            console.log('➕ タスク作成中...', { title, details });
+            const response = await apiClient.post('/todos', {
+                title: title.trim(),
+                details: details.trim()
+            });
+            
+            console.log('✅ タスク作成成功:', response.data);
+            
+            // タスクリストを再取得
+            await fetchTasks();
+            
+            // 入力フィールドをリセット
+            setTitle('');
+            setDetails('');
+        } catch (error) {
+            console.error('❌ タスク作成エラー:', error);
+            setError('タスクの作成に失敗しました');
+        } finally {
+            setLoading(false);
+        }
     };
 
-    // タスクを削除する処理
-    const handleDeleteTask = (taskId) => {
-        setTasks(tasks.filter((task) => task.id !== taskId));
+    // タスクの完了/未完了を切り替える関数
+    const handleToggleComplete = async (taskId) => {
+        try {
+            console.log('🔄 タスク状態切り替え中...', taskId);
+            const response = await apiClient.put(`/todos/${taskId}/toggle`);
+            console.log('✅ タスク状態切り替え成功:', response.data);
+            
+            // タスクリストを再取得
+            await fetchTasks();
+        } catch (error) {
+            console.error('❌ タスク状態切り替えエラー:', error);
+            setError('タスクの状態変更に失敗しました');
+        }
     };
 
-    // タスクを編集・更新する処理
-    const handleUpdateTask = (taskId, updatedTitle, updatedDetails) => {
-        setTasks(
-            tasks.map((task) =>
-                task.id === taskId
-                    ? {
-                          ...task,
-                          title: updatedTitle, // タイトルを更新
-                          details: updatedDetails, // 詳細を更新
-                          updatedAt: new Date().toLocaleString(), // 更新日時を変更
-                      }
-                    : task
-            )
-        );
+    // タスクを削除する関数
+    const handleDelete = async (taskId) => {
+        if (window.confirm('このタスクを削除しますか？')) {
+            try {
+                console.log('🗑️ タスク削除中...', taskId);
+                await apiClient.delete(`/todos/${taskId}`);
+                console.log('✅ タスク削除成功');
+                
+                // タスクリストを再取得
+                await fetchTasks();
+            } catch (error) {
+                console.error('❌ タスク削除エラー:', error);
+                setError('タスクの削除に失敗しました');
+            }
+        }
     };
 
-    // タスクの完了・未完了を切り替える処理
-    const handleToggleComplete = (taskId) => {
-        setTasks(
-            tasks.map((task) =>
-                task.id === taskId
-                    ? { ...task, completed: !task.completed, updatedAt: new Date().toLocaleString() }
-                    : task
-            )
-        );
+    // タスクを更新する関数
+    const handleUpdate = async (taskId, newTitle, newDetails) => {
+        try {
+            console.log('✏️ タスク更新中...', taskId, { title: newTitle, details: newDetails });
+            const response = await apiClient.put(`/todos/${taskId}`, {
+                title: newTitle.trim(),
+                details: newDetails.trim()
+            });
+            console.log('✅ タスク更新成功:', response.data);
+            
+            // タスクリストを再取得
+            await fetchTasks();
+        } catch (error) {
+            console.error('❌ タスク更新エラー:', error);
+            setError('タスクの更新に失敗しました');
+        }
     };
 
-    // 現在のフィルタリング状態に応じたタスクを取得
+    // フィルタリングされたタスクリストを取得
     const filteredTasks = tasks.filter((task) => {
-        if (filter === 'completed') return task.completed; // 完了のみ表示
-        if (filter === 'incomplete') return !task.completed; // 未完了のみ表示
-        return true; // 全て表示
+        if (filter === 'completed') return task.completed;
+        if (filter === 'incomplete') return !task.completed;
+        return true;
     });
 
     // コンポーネントのスタイル設定
@@ -97,13 +328,12 @@ function TodoHome({ onLogout, username }) {
     const errorStyle = { color: 'red', fontSize: '14px' };
     const logoutButtonStyle = { padding: '10px', fontSize: '16px', backgroundColor: '#dc3545', color: '#fff', border: 'none', cursor: 'pointer' };
 
-
     return (
         <div style={containerStyle}>
-            {/* ヘッダー部分 */}
+            {/* ヘッダー: ユーザー名とログアウトボタン */}
             <header style={headerStyle}>
-                <div>{username}でログイン中</div>
-                <button style={logoutButtonStyle} onClick={onLogout}>
+                <div>{currentUser}でログイン中</div>
+                <button style={logoutButtonStyle} onClick={handleLogoutClick}>
                     ログアウト
                 </button>
             </header>
@@ -116,27 +346,47 @@ function TodoHome({ onLogout, username }) {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     style={inputStyle}
+                    disabled={loading}
                 />
                 <textarea
                     placeholder="タスク詳細"
                     value={details}
                     onChange={(e) => setDetails(e.target.value)}
                     style={{ ...inputStyle, height: '120px' }}
+                    disabled={loading}
                 />
                 {error && <p style={errorStyle}>{error}</p>}
-                <button type="submit" style={{ padding: '10px', fontSize: '16px', backgroundColor: '#28a745', color: '#fff', border: 'none', cursor: 'pointer' }}>
-                    追加
+                <button 
+                    type="submit" 
+                    style={{ 
+                        padding: '10px', 
+                        fontSize: '16px', 
+                        backgroundColor: loading ? '#ccc' : '#28a745', 
+                        color: '#fff', 
+                        border: 'none', 
+                        cursor: loading ? 'not-allowed' : 'pointer' 
+                    }}
+                    disabled={loading}
+                >
+                    {loading ? '処理中...' : '追加'}
                 </button>
             </form>
 
             {/* フィルタリングボタン */}
             <TaskFilter filter={filter} setFilter={setFilter} />
 
+            {/* ローディング表示 */}
+            {loading && <p style={{ textAlign: 'center' }}>読み込み中...</p>}
+
             {/* タスクリスト */}
-            <TaskList tasks={filteredTasks} onDelete={handleDeleteTask} onUpdate={handleUpdateTask} onToggleComplete={handleToggleComplete} />
+            <TaskList 
+                tasks={filteredTasks} 
+                onToggleComplete={handleToggleComplete}
+                onDelete={handleDelete}
+                onUpdate={handleUpdate}
+            />
         </div>
     );
-}
+};
 
 export default TodoHome;
-
