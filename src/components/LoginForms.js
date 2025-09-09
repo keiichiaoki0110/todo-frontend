@@ -1,12 +1,10 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 
-function LoginForms({ onLogin }) {
+function LoginForms({ onLogin, onNavigateToHome, onNavigateToSignup }) {
     const [username, setUsername] = useState(''); // ユーザー名
     const [password, setPassword] = useState(''); // パスワード
     const [error, setError] = useState(''); // エラーメッセージ
-    const navigate = useNavigate(); // ページ遷移用のフック
 
     // ログインフォームの送信処理
     const handleLogin = async (e) => {
@@ -25,7 +23,11 @@ function LoginForms({ onLogin }) {
                 console.log('✅ トークン保存完了:', access_token.substring(0, 20) + '...'); // デバッグログ
                 
                 onLogin(username); // 親コンポーネントにログインイベントを伝達
-                navigate('/home'); // ホーム画面に遷移
+                
+                // ナビゲーション処理を親コンポーネントに委譲
+                if (onNavigateToHome) {
+                    onNavigateToHome();
+                }
             } else {
                 console.error('❌ トークンがレスポンスに含まれていません');
                 setError('ログインに失敗しました。サーバーエラーです。');
@@ -33,6 +35,13 @@ function LoginForms({ onLogin }) {
         } catch (err) {
             console.error('❌ ログインエラー:', err);
             setError('ログインに失敗しました。ユーザー名またはパスワードを確認してください。');
+        }
+    };
+
+    // アカウント作成画面への遷移処理
+    const handleNavigateToSignup = () => {
+        if (onNavigateToSignup) {
+            onNavigateToSignup();
         }
     };
 
@@ -83,7 +92,7 @@ function LoginForms({ onLogin }) {
             {/* アカウント作成画面への遷移ボタン */}
             <button
                 type="button"
-                onClick={() => navigate('/signup')}
+                onClick={handleNavigateToSignup}
                 style={{
                     padding: '10px',
                     fontSize: '16px',

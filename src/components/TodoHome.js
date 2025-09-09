@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 
 // TaskFilterコンポーネント
@@ -179,36 +178,24 @@ const TaskList = ({ tasks, onToggleComplete, onDelete, onUpdate }) => {
 
 // メインのTodoHomeコンポーネント
 const TodoHome = ({ currentUser, handleLogout }) => {
-    const navigate = useNavigate();
-    
     // タスクリストの状態
     const [tasks, setTasks] = useState([]);
-    // 入力されたタスクタイトル
     const [title, setTitle] = useState('');
-    // 入力されたタスク詳細
     const [details, setDetails] = useState('');
-    // フィルタリングの状態('all', 'completed', 'incomplete')
     const [filter, setFilter] = useState('all');
-    // エラーメッセージ
     const [error, setError] = useState('');
-    // ローディング状態
     const [loading, setLoading] = useState(false);
     
-    // コンポーネントマウント時にタスクを取得
     useEffect(() => {
         fetchTasks();
     }, []);
 
-    // タスク一覧を取得する関数
     const fetchTasks = async () => {
         try {
             setLoading(true);
-            console.log('📋 タスク一覧を取得中...');
             const response = await apiClient.get('/todos');
-            console.log('✅ タスク取得成功:', response.data);
             setTasks(response.data);
         } catch (error) {
-            console.error('❌ タスク取得エラー:', error);
             setError('タスクの取得に失敗しました');
         } finally {
             setLoading(false);
@@ -218,109 +205,69 @@ const TodoHome = ({ currentUser, handleLogout }) => {
     const handleLogoutClick = () => {
         localStorage.removeItem('access_token');
         handleLogout();
-        navigate('/login');
+        // useNavigateを使わずリダイレクト
+        window.location.href = '/login';
     };
 
-    // タスクを追加する関数
     const handleAddTask = async (e) => {
         e.preventDefault();
-
-        // タイトルの文字数制限チェック
         if (title.length > 25) {
             setError('タイトルは25文字以内で入力してください');
             return;
         }
-
-        // 必須項目チェック
         if (!title || !details) {
             setError('タイトルと詳細を入力してください');
             return;
         }
-
         try {
-            setError(''); // エラーをクリア
+            setError('');
             setLoading(true);
-            
-            console.log('➕ タスク作成中...', { title, details });
-            const response = await apiClient.post('/todos', {
-                title: title.trim(),
-                details: details.trim()
-            });
-            
-            console.log('✅ タスク作成成功:', response.data);
-            
-            // タスクリストを再取得
+            await apiClient.post('/todos', { title: title.trim(), details: details.trim() });
             await fetchTasks();
-            
-            // 入力フィールドをリセット
             setTitle('');
             setDetails('');
-        } catch (error) {
-            console.error('❌ タスク作成エラー:', error);
+        } catch {
             setError('タスクの作成に失敗しました');
         } finally {
             setLoading(false);
         }
     };
 
-    // タスクの完了/未完了を切り替える関数
     const handleToggleComplete = async (taskId) => {
         try {
-            console.log('🔄 タスク状態切り替え中...', taskId);
-            const response = await apiClient.put(`/todos/${taskId}/toggle`);
-            console.log('✅ タスク状態切り替え成功:', response.data);
-            
-            // タスクリストを再取得
+            await apiClient.put(`/todos/${taskId}/toggle`);
             await fetchTasks();
-        } catch (error) {
-            console.error('❌ タスク状態切り替えエラー:', error);
+        } catch {
             setError('タスクの状態変更に失敗しました');
         }
     };
 
-    // タスクを削除する関数
     const handleDelete = async (taskId) => {
         if (window.confirm('このタスクを削除しますか？')) {
             try {
-                console.log('🗑️ タスク削除中...', taskId);
                 await apiClient.delete(`/todos/${taskId}`);
-                console.log('✅ タスク削除成功');
-                
-                // タスクリストを再取得
                 await fetchTasks();
-            } catch (error) {
-                console.error('❌ タスク削除エラー:', error);
+            } catch {
                 setError('タスクの削除に失敗しました');
             }
         }
     };
 
-    // タスクを更新する関数
     const handleUpdate = async (taskId, newTitle, newDetails) => {
         try {
-            console.log('✏️ タスク更新中...', taskId, { title: newTitle, details: newDetails });
-            const response = await apiClient.put(`/todos/${taskId}`, {
-                title: newTitle.trim(),
-                details: newDetails.trim()
-            });
-            console.log('✅ タスク更新成功:', response.data);
-            
-            // タスクリストを再取得
+            await apiClient.put(`/todos/${taskId}`, { title: newTitle.trim(), details: newDetails.trim() });
             await fetchTasks();
-        } catch (error) {
-            console.error('❌ タスク更新エラー:', error);
+        } catch {
             setError('タスクの更新に失敗しました');
         }
     };
 
-    // フィルタリングされたタスクリストを取得
     const filteredTasks = tasks.filter((task) => {
         if (filter === 'completed') return task.completed;
         if (filter === 'incomplete') return !task.completed;
         return true;
     });
 
-    // コンポーネントのスタイル設定
     const containerStyle = { width: '600px', margin: '0 auto', padding: '20px' };
     const headerStyle = { display: 'flex', justifyContent: 'space-between', marginBottom: '20px' };
     const formStyle = { display: 'flex', flexDirection: 'column', gap: '15px', marginTop: '20px' };
@@ -330,7 +277,6 @@ const TodoHome = ({ currentUser, handleLogout }) => {
 
     return (
         <div style={containerStyle}>
-            {/* ヘッダー: ユーザー名とログアウトボタン */}
             <header style={headerStyle}>
                 <div>{currentUser}でログイン中</div>
                 <button style={logoutButtonStyle} onClick={handleLogoutClick}>
@@ -338,7 +284,6 @@ const TodoHome = ({ currentUser, handleLogout }) => {
                 </button>
             </header>
 
-            {/* タスク追加フォーム */}
             <form style={formStyle} onSubmit={handleAddTask}>
                 <input
                     type="text"
@@ -372,13 +317,8 @@ const TodoHome = ({ currentUser, handleLogout }) => {
                 </button>
             </form>
 
-            {/* フィルタリングボタン */}
             <TaskFilter filter={filter} setFilter={setFilter} />
-
-            {/* ローディング表示 */}
             {loading && <p style={{ textAlign: 'center' }}>読み込み中...</p>}
-
-            {/* タスクリスト */}
             <TaskList 
                 tasks={filteredTasks} 
                 onToggleComplete={handleToggleComplete}

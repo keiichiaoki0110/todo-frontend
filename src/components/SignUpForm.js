@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import apiClient from '../api/client';
 
-function SignUpForm() {
+function SignUpForm({ onSignUpSuccess, onNavigateToLogin }) {
     const [formData, setFormData] = useState({
         username: '', // ユーザー名入力値
         email: '', // メールアドレス入力値
         password: '', // パスワード入力値
     });
     const [error, setError] = useState(''); // エラーメッセージの状態
-    const navigate = useNavigate(); // ページ遷移用のフック
 
     // 入力フィールドの値を更新
     const handleChange = (e) => {
@@ -23,7 +21,16 @@ function SignUpForm() {
         try {
             await apiClient.post('/auth/register', formData); // バックエンドにアカウント作成リクエストを送信
             alert('アカウントが作成されました！ログイン画面に進んでください。');
-            navigate('/login'); // ログイン画面に遷移
+            
+            // 成功時のコールバック関数を呼び出し
+            if (onSignUpSuccess) {
+                onSignUpSuccess();
+            }
+            
+            // ログイン画面への遷移コールバックを呼び出し
+            if (onNavigateToLogin) {
+                onNavigateToLogin();
+            }
         } catch (err) {
             // エラーメッセージを取得
             if (err.response && err.response.data && err.response.data.detail) {
@@ -31,6 +38,13 @@ function SignUpForm() {
             } else {
                 setError('アカウント作成に失敗しました。入力内容を確認してください。');
             }
+        }
+    };
+
+    // ログイン画面に戻るボタンのクリック処理
+    const handleNavigateToLogin = () => {
+        if (onNavigateToLogin) {
+            onNavigateToLogin();
         }
     };
 
@@ -93,7 +107,7 @@ function SignUpForm() {
             {/* ログイン画面に戻るボタン */}
             <button
                 type="button"
-                onClick={() => navigate('/login')}
+                onClick={handleNavigateToLogin}
                 style={{
                     padding: '10px',
                     fontSize: '16px',
@@ -111,4 +125,3 @@ function SignUpForm() {
 }
 
 export default SignUpForm;
-
