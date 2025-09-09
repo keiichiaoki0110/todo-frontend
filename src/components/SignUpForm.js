@@ -21,7 +21,7 @@ function SignUpForm() {
     const handleSubmit = async (e) => {
         e.preventDefault(); // フォームのデフォルト動作（ページリロード）を防止
         try {
-            await apiClient.post('/auth/signup', formData); // バックエンドにアカウント作成リクエストを送信
+            await apiClient.post('/auth/register', formData); // バックエンドにアカウント作成リクエストを送信
             alert('アカウントが作成されました！ログイン画面に進んでください。');
             navigate('/login'); // ログイン画面に遷移
         } catch (err) {

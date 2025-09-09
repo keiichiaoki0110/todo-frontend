@@ -19,7 +19,7 @@ function ToDoForm({ token }) {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: JSON.stringify({ title, description }),
+                body: JSON.stringify({ title, details: description }),
             });
 
             if (!res.ok) {

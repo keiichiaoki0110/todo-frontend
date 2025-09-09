@@ -6,9 +6,14 @@ const TaskItem = ({ task = {}, onDelete, onUpdate, onToggleComplete }) => {
   const [editedTitle, setEditedTitle] = useState(task.title || '');
   const [editedDetails, setEditedDetails] = useState(task.description || '');
 
-  const handleSave = () => {
-    onUpdate(task.id, editedTitle, editedDetails);
-    setIsEditing(false);
+  const handleSave = async () => {
+    try {
+      await onUpdate(task.id, editedTitle, editedDetails);
+      setIsEditing(false);
+    } catch (error) {
+      console.error('タスク更新エラー:', error);
+      alert('タスクの更新に失敗しました');
+    }
   };
 
   const formatDate = (dateString) => {

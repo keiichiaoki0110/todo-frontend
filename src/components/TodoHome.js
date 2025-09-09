@@ -134,9 +134,9 @@ const TaskItem = ({ task, onToggleComplete, onDelete, onUpdate }) => {
                     <p style={textStyle} onClick={() => onToggleComplete(task.id)}>
                         {task.details}
                     </p>
-                    <small>作成日時: {new Date(task.created_at).toLocaleString()}</small>
+                    <small>作成日時: {new Date(task.createdAt).toLocaleString()}</small>
                     <br />
-                    <small>更新日時: {new Date(task.updated_at).toLocaleString()}</small>
+                    <small>更新日時: {new Date(task.updatedAt).toLocaleString()}</small>
                     <br />
                     <button onClick={() => setIsEditing(true)} style={editButtonStyle}>
                         編集

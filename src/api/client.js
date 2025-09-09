@@ -11,15 +11,23 @@ const apiClient = axios.create({
     },
 });
 
-// リクエスト時にトークンを自動的にヘッダーへ追加
+// リクエスト時にトークンをJSONボディまたはヘッダーに追加
 apiClient.interceptors.request.use((config) => {
-    // ✅ 修正: 'access_token' キーで取得
-    const token = localStorage.getItem('access_token'); // ローカルストレージからトークンを取得
+    const token = localStorage.getItem('access_token');
     if (token) {
-        config.headers.Authorization = `Bearer ${token}`; // トークンを認証ヘッダーに設定
-        console.log('🔍 リクエストにトークンを追加:', token.substring(0, 20) + '...'); // デバッグログ
+        // JSON方式: リクエストボディにトークンを追加（POST/PUTの場合）
+        if (config.method === 'post' || config.method === 'put') {
+            config.data = {
+                ...config.data,
+                token: token
+            };
+            console.log('🔍 JSONボディにトークンを追加:', token.substring(0, 20) + '...');
+        }
+        // ヘッダー方式も併用（GET/DELETEの場合）
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log('🔍 Authorizationヘッダーにトークンを追加:', token.substring(0, 20) + '...');
     } else {
-        console.log('⚠️ トークンが見つかりません'); // デバッグログ
+        console.log('⚠️ トークンが見つかりません');
     }
     return config;
 });
